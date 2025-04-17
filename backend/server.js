@@ -67,11 +67,3 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Import GeoJSON via POST to http://localhost:${PORT}/api/kecamatan/import`);
 });
-
-// 9. Graceful Shutdown
-process.on('SIGINT', () => {
-    mongoose.connection.close(() => {
-        console.log('MongoDB connection closed');
-        process.exit(0);
-    });
-});
