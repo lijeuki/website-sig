@@ -8,9 +8,8 @@ import LandingPage from './components/LandingPage';
 function App() {
   return (
     <Router>
-      <div className="flex flex-col h-screen w-screen overflow-hidden">
+      <div className="flex flex-col h-screen w-screen overflow-auto"> {/* Ganti overflow-hidden menjadi overflow-auto */}
         <Navbar />
-
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/peta" element={
