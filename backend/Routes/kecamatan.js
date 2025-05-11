@@ -192,8 +192,11 @@ router.patch('/analyze-rth', async (req, res) => {
 });
 
 // 6. Endpoint Data untuk Peta (Fixed)
+// Endpoint Data untuk Peta (Improved)
 router.get('/map-data', async (req, res) => {
     try {
+        console.log('GET request received for /api/kecamatan/map-data');
+
         const data = await Kecamatan.find({}, {
             'properties.NAMOBJ': 1,
             'properties.luasRTH': 1,
@@ -201,6 +204,17 @@ router.get('/map-data', async (req, res) => {
             'geometry': 1,
             '_id': 0
         });
+
+        console.log(`Found ${data.length} kecamatan records`);
+
+        if (data.length === 0) {
+            console.log('No data found in database. Make sure you have imported GeoJSON data.');
+            return res.json({
+                success: true,
+                message: 'No data found. Please import GeoJSON data first.',
+                data: []
+            });
+        }
 
         // Bersihkan data sebelum dikirim
         const cleanedData = data.map(item => {
@@ -231,11 +245,14 @@ router.get('/map-data', async (req, res) => {
             };
         });
 
+        console.log(`Successfully processed ${cleanedData.length} features`);
+
         res.json({
             success: true,
             data: cleanedData
         });
     } catch (err) {
+        console.error('Error in /map-data endpoint:', err);
         res.status(500).json({
             success: false,
             error: err.message

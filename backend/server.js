@@ -4,7 +4,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const kecamatanRoutes = require('./routes/kecamatan');
+const multer = require('multer'); // Tambahkan import multer
+const kecamatanRoutes = require('./Routes/kecamatan');
 
 // Inisialisasi Aplikasi Express
 const app = express();
