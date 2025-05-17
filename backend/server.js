@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const kecamatanRoutes = require('./Routes/kecamatan');
-const csvDataRoutes = require('./Routes/csvData');
 
 // Inisialisasi Aplikasi Express
 const app = express();
@@ -37,7 +36,6 @@ mongoose.connect(MONGODB_URI, {
 
 // 5. Routes
 app.use('/api/kecamatan', kecamatanRoutes);
-app.use('/api/csvdata', csvDataRoutes); // Route untuk data CSV
 
 // 6. Error Handling Middleware
 app.use((err, req, res, next) => {
