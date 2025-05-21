@@ -46,7 +46,7 @@ const LandingPage = () => {
                         <div className="bg-white rounded-lg shadow-lg overflow-hidden border-t-4 border-green-600">
                             <div className="p-8">
                                 <h3 className="text-2xl font-bold text-green-700 mb-4">
-                                    Kategori Ruang Terbuka Hijau
+                                    Ruang Terbuka Hijau Itu Apa?
                                 </h3>
                                 <div className="mb-6 h-60 overflow-hidden rounded-lg">
                                     <img
@@ -57,28 +57,7 @@ const LandingPage = () => {
                                 </div>
                                 <ul className="space-y-2 text-gray-700">
                                     <li className="flex items-start">
-                                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span><strong>Taman Kota:</strong> Area hijau untuk rekreasi publik dan aktivitas sosial masyarakat</span>
-                                    </li>
-                                    <li className="flex items-start">
-                                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span><strong>Hutan Kota:</strong> Kawasan vegetasi berkayu di wilayah perkotaan dengan fungsi ekologi</span>
-                                    </li>
-                                    <li className="flex items-start">
-                                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span><strong>Jalur Hijau:</strong> RTH berbentuk memanjang/jalur di sepanjang jalan, sungai, atau rel kereta</span>
-                                    </li>
-                                    <li className="flex items-start">
-                                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span><strong>RTH Privat:</strong> Kebun atau halaman milik masyarakat/swasta yang ditanami vegetasi</span>
+                                        <span>Ruang terbuka adalah area yang dirancang untuk memenuhi kebutuhan masyarakat akan tempat berkumpul dan beraktivitas di luar ruangan. Ketika banyak orang berkumpul dan berinteraksi, beragam kegiatan dapat terwujud di ruang publik tersebut. Ruang terbuka hijau diartikan sebagai kawasan yang bersifat terbuka dan ditumbuhi tanaman, baik yang tumbuh secara alami maupun yang ditanam dengan sengaja. Ruang terbuka hijau dapat dibagi menjadi dua kategori, yaitu publik dan privat.</span>
                                     </li>
                                 </ul>
                             </div>
@@ -88,7 +67,7 @@ const LandingPage = () => {
                         <div className="bg-white rounded-lg shadow-lg overflow-hidden border-t-4 border-blue-600">
                             <div className="p-8">
                                 <h3 className="text-2xl font-bold text-blue-700 mb-4">
-                                    Distribusi RTH Kota Bandung
+                                    Kondisi RTH Kota Bandung
                                 </h3>
                                 <div className="mb-6 h-60 overflow-hidden rounded-lg">
                                     <img
@@ -99,20 +78,20 @@ const LandingPage = () => {
                                 </div>
                                 <div className="text-gray-700 space-y-4">
                                     <p>
-                                        Saat ini, Kota Bandung memiliki sebaran RTH yang belum merata di seluruh wilayah kota. Data tahun 2023 menunjukkan bahwa:
+                                        Saat ini, Kota Bandung memiliki sebaran RTH Publik yang belum merata di seluruh wilayah kota. Data tahun 2023 menunjukkan bahwa:
                                     </p>
                                     <div className="grid grid-cols-2 gap-4 my-4">
                                         <div className="bg-blue-50 p-3 rounded-lg text-center">
-                                            <p className="text-2xl font-bold text-blue-700">17.3%</p>
-                                            <p className="text-sm text-gray-600">Total RTH</p>
+                                            <p className="text-2xl font-bold text-blue-700">2.17%</p>
+                                            <p className="text-sm text-gray-600">Total RTH Publik</p>
                                         </div>
                                         <div className="bg-green-50 p-3 rounded-lg text-center">
-                                            <p className="text-2xl font-bold text-green-700">30%</p>
-                                            <p className="text-sm text-gray-600">Target RTH</p>
+                                            <p className="text-2xl font-bold text-green-700">20%</p>
+                                            <p className="text-sm text-gray-600">Target RTH Publik</p>
                                         </div>
                                     </div>
                                     <p>
-                                        Melalui pemetaan SIG, kami mengidentifikasi area potensial pengembangan RTH untuk mencapai target minimal 30% sesuai Undang-Undang Penataan Ruang.
+                                        Melalui pemetaan SIG, kami mengidentifikasi area potensial pengembangan RTH Publik untuk mencapai target minimal 20% sesuai Undang-Undang Penataan Ruang.
                                     </p>
                                 </div>
                             </div>

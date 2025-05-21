@@ -246,10 +246,6 @@ const BandungMap = () => {
                     <td>${rthData.luas_kecamatan?.toFixed(0) || '0'} ha</td>
                 </tr>
                 <tr>
-                    <td class="font-semibold pr-2">Persentase RTH:</td>
-                    <td>${rthPercentage.toFixed(2)}%</td>
-                </tr>
-                <tr>
                     <td class="font-semibold pr-2">Cluster:</td>
                     <td style="color: ${clusterColor}; font-weight: bold">${clusterName}</td>
                 </tr>
