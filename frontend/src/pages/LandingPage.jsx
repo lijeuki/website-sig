@@ -1,19 +1,25 @@
 // LandingPage.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import PureCityIllustration from '../components/PureCityIllustration';
 
 const LandingPage = () => {
     return (
         <div className="flex flex-col min-h-screen">
-            {/* Hero Section dengan Background Image dan Ukuran Lebih Panjang */}
-            <section
-                className="relative text-white min-h-[95vh] flex items-center justify-center bg-cover bg-center"
-                style={{
-                    backgroundImage: "url('https://assets.weforum.org/article/image/1AMOAkzsQvNkWWqN832FcftekobBbq9PvTHYez21qaA.jpg')",
-                }}
-            >
-                <div className="absolute inset-0 bg-black opacity-50"></div>
-                <div className="relative max-w-7xl mx-auto px-4 py-36 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Hero Section dengan SVG Full Screen */}
+            <section className="relative text-white h-screen w-full flex items-center justify-center overflow-hidden">
+                {/* SVG sebagai background full screen yang tidak menutupi navbar */}
+                <div className="absolute inset-0 w-full h-full z-0">
+                    <div className="w-full h-full">
+                        <PureCityIllustration />
+                    </div>
+                </div>
+
+                {/* Overlay gelap */}
+                <div className="absolute inset-0 bg-black opacity-40 z-10"></div>
+
+                {/* Konten di atas gambar */}
+                <div className="relative max-w-7xl mx-auto px-4 py-36 sm:px-6 lg:px-8 flex flex-col items-center z-20">
                     <h1 className="text-4xl md:text-6xl font-bold text-center mb-6">
                         Bandung Green Spaces
                     </h1>
@@ -29,7 +35,7 @@ const LandingPage = () => {
             </section>
 
             {/* Informasi RTH Section - Berbeda dari referensi */}
-            <section className="py-16 bg-gray-100">
+            <section className="py-16 bg-gray-100 relative z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h2 className="text-3xl font-bold text-center text-green-700 mb-10">
                         RUANG TERBUKA HIJAU KOTA BANDUNG

@@ -1,9 +1,12 @@
 .leaflet-interactive:focus {
   outline: none !important;
 }
+
 /* Tambahkan ini ke App.css */
 /* Tambahkan ke App.css */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -18,4 +21,97 @@ html, body, #root {
 /* Pastikan halaman landing tetap bisa di-scroll dengan baik */
 .overflow-auto {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Tambahkan kode ini ke src/App.css untuk styling popup peta */
+
+/* Styling untuk popup peta */
+.leaflet-popup-content-wrapper {
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: 300px !important;
+}
+
+.rth-popup {
+  padding: 12px;
+}
+
+.rth-popup h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #1a202c;
+}
+
+.rth-popup table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.rth-popup td {
+  padding: 4px 2px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.rth-popup tr:last-child td {
+  border-bottom: none;
+}
+
+/* Styling untuk legenda */
+.custom-legend {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Ukuran popup */
+.custom-popup .leaflet-popup-content {
+  max-width: 320px;
+}
+
+/* Warna tooltip */
+.leaflet-tooltip {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  padding: 6px 10px;
+  border-radius: 3px;
+}
+
+.leaflet-tooltip-top:before {
+  border-top-color: rgba(0, 0, 0, 0.7);
+}
+
+.leaflet-tooltip-bottom:before {
+  border-bottom-color: rgba(0, 0, 0, 0.7);
+}
+
+.leaflet-tooltip-left:before {
+  border-left-color: rgba(0, 0, 0, 0.7);
+}
+
+.leaflet-tooltip-right:before {
+  border-right-color: rgba(0, 0, 0, 0.7);
 }

@@ -1,6 +1,6 @@
-// src/components/Map.jsx - Modified version
+// src/components/Map.jsx - With only OpenStreetMap and cluster coloring
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,7 +9,10 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 
 const BandungMap = () => {
+    // State untuk data GeoJSON kecamatan dan data RTH
     const [geoData, setGeoData] = useState(null);
+    const [rthData, setRthData] = useState(null);
+    const [mergedData, setMergedData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -25,83 +28,275 @@ const BandungMap = () => {
         });
     }, []);
 
+    // Fetch both kecamatan boundaries and RTH data
     useEffect(() => {
-        const fetchKecamatan = async () => {
+        const fetchData = async () => {
             try {
-                console.log('Fetching kecamatan data...');
-                const res = await axios.get('http://localhost:5000/api/kecamatan');
-                console.log('Data received:', res.data);
-                setGeoData(res.data);
+                setLoading(true);
+
+                // Fetch kecamatan boundaries
+                const kecamatanResponse = await axios.get('http://localhost:5000/api/kecamatan');
+                console.log('Kecamatan data received:', kecamatanResponse.data);
+
+                // Fetch RTH data
+                const rthResponse = await axios.get('http://localhost:5000/api/rth-kecamatan');
+                console.log('RTH data received:', rthResponse.data);
+
+                setGeoData(kecamatanResponse.data);
+                setRthData(rthResponse.data);
                 setLoading(false);
             } catch (err) {
-                console.error('Error fetching kecamatan data:', err);
-                setError('Failed to load kecamatan data: ' + err.message);
+                console.error('Error fetching map data:', err);
+                setError('Failed to load map data: ' + err.message);
                 setLoading(false);
             }
         };
 
-        fetchKecamatan();
+        fetchData();
     }, []);
 
-    const mapStyle = {
-        fillColor: '#3388ff',
-        weight: 0.8,
-        opacity: 1,
-        color: '#333',
-        dashArray: '0.5',
-        fillOpacity: 0.4
+    // Merge GeoJSON and RTH data when both are available
+    useEffect(() => {
+        if (geoData && rthData && Array.isArray(geoData.features) && Array.isArray(rthData)) {
+            // Create a mapping of kecamatan names to RTH data
+            const rthByKecamatan = {};
+            rthData.forEach(item => {
+                if (item.kecamatan) {
+                    rthByKecamatan[item.kecamatan.toLowerCase()] = item;
+                }
+            });
+
+            // Create a new GeoJSON object with merged data
+            const mergedGeoJSON = {
+                type: 'FeatureCollection',
+                features: geoData.features.map(feature => {
+                    const featureName = feature.properties.name?.toLowerCase() || '';
+                    const rthInfo = rthByKecamatan[featureName] || null;
+
+                    // Return a new feature with RTH data included in properties
+                    return {
+                        ...feature,
+                        properties: {
+                            ...feature.properties,
+                            rthData: rthInfo,
+                            hasRthData: !!rthInfo
+                        }
+                    };
+                })
+            };
+
+            setMergedData(mergedGeoJSON);
+        }
+    }, [geoData, rthData]);
+
+    // Get color based on cluster
+    const getColor = (feature) => {
+        // Check if feature has RTH data
+        if (!feature.properties.rthData) return '#CCCCCC'; // Gray for no data
+
+        const rthData = feature.properties.rthData;
+        // Get color based on cluster
+        switch (rthData.cluster) {
+            case 'cluster_0':
+                return '#E53E3E'; // Red for cluster 0
+            case 'cluster_1':
+                return '#F6E05E'; // Yellow for cluster 1
+            case 'cluster_2':
+                return '#38A169'; // Green for cluster 2
+            default:
+                return '#CCCCCC'; // Gray for undefined or null cluster
+        }
     };
 
-    // Fungsi untuk event kecamatan
-    const onEachFeature = (feature, layer) => {
-        // Menambahkan tooltip untuk hover
-        if (feature.properties && feature.properties.name) {
-            layer.bindTooltip(feature.properties.name);
+    // Style function for GeoJSON
+    const getFeatureStyle = (feature) => {
+        return {
+            fillColor: getColor(feature),
+            weight: 0.8,
+            opacity: 1,
+            color: '#333',
+            dashArray: '0.5',
+            fillOpacity: 0.7
+        };
+    };
+
+    // Get cluster name for legend
+    const getClusterName = (cluster) => {
+        switch (cluster) {
+            case 'cluster_0':
+                return 'Cluster 0 (RTH Rendah)';
+            case 'cluster_1':
+                return 'Cluster 1 (RTH Menengah)';
+            case 'cluster_2':
+                return 'Cluster 2 (RTH Tinggi)';
+            default:
+                return 'Tidak diketahui';
+        }
+    };
+
+    // Generate tooltip content
+    const createTooltipContent = (feature) => {
+        const kecamatanName = feature.properties.name || 'Unknown';
+
+        if (!feature.properties.rthData) {
+            return `${kecamatanName} (Data tidak tersedia)`;
         }
 
-        // Menambahkan popup untuk klik
-        const popupContent = feature.properties && feature.properties.name
-            ? `<div>
-          <h3 class="font-semibold text-lg">${feature.properties.name}</h3>
-        </div>`
-            : 'Kecamatan tidak diketahui';
+        const rthData = feature.properties.rthData;
+        const clusterName = getClusterName(rthData.cluster);
 
-        layer.bindPopup(popupContent);
+        return `${kecamatanName} (${clusterName})`;
+    };
 
-        // Tambahkan event handler untuk highlight saat hover
+    // Function to handle each feature (onEachFeature)
+    const onEachFeature = (feature, layer) => {
+        // Create tooltip content
+        const tooltipContent = createTooltipContent(feature);
+
+        // Bind tooltip for hover
+        layer.bindTooltip(tooltipContent);
+
+        // Create detailed popup content
+        const popupContent = createPopupContent(feature);
+
+        // Bind popup for click
+        layer.bindPopup(popupContent, {
+            maxWidth: 300,
+            className: 'custom-popup'
+        });
+
+        // Add event listeners for hover effects
         layer.on({
             mouseover: (e) => {
                 const layer = e.target;
                 layer.setStyle({
-                    weight: 2,
-                    color: '#666',
+                    weight: 3,
+                    color: '#555',
                     dashArray: '',
-                    fillOpacity: 0.7
+                    fillOpacity: 0.8
                 });
                 layer.bringToFront();
             },
             mouseout: (e) => {
                 const layer = e.target;
-                layer.setStyle(mapStyle);
+                layer.setStyle(getFeatureStyle(feature));
             },
             click: (e) => {
                 const layer = e.target;
-                // Popup already taken care of by bindPopup above
                 console.log(`Clicked on: ${feature.properties.name || 'Unknown'}`);
             }
         });
     };
 
+    // Create detailed popup content
+    const createPopupContent = (feature) => {
+        const kecamatanName = feature.properties.name || 'Tidak diketahui';
+
+        if (!feature.properties.rthData) {
+            return `
+            <div class="rth-popup">
+                <h3 class="text-lg font-bold mb-1">Kecamatan ${kecamatanName}</h3>
+                <div class="text-sm text-gray-600 mb-2">Data RTH tidak tersedia</div>
+            </div>`;
+        }
+
+        const rthData = feature.properties.rthData;
+        const rthPercentage = rthData.luas_kecamatan > 0
+            ? (rthData.total_rth / rthData.luas_kecamatan) * 100
+            : 0;
+
+        // Get color based on cluster
+        let clusterColor;
+        switch (rthData.cluster) {
+            case 'cluster_0':
+                clusterColor = 'red';
+                break;
+            case 'cluster_1':
+                clusterColor = 'orange';
+                break;
+            case 'cluster_2':
+                clusterColor = 'green';
+                break;
+            default:
+                clusterColor = 'gray';
+        }
+
+        const clusterName = getClusterName(rthData.cluster);
+
+        return `
+        <div class="rth-popup">
+            <h3 class="text-lg font-bold mb-1">Kecamatan ${kecamatanName}</h3>
+            <div class="text-sm text-gray-600 mb-2">Informasi Ruang Terbuka Hijau</div>
+            
+            <table class="w-full text-sm">
+                <tr>
+                    <td class="font-semibold pr-2">Total RTH:</td>
+                    <td>${rthData.total_rth?.toFixed(2) || '0'} ha</td>
+                </tr>
+                <tr>
+                    <td class="font-semibold pr-2">Luas Taman:</td>
+                    <td>${rthData.luas_taman?.toFixed(2) || '0'} ha</td>
+                </tr>
+                <tr>
+                    <td class="font-semibold pr-2">Luas Pemakaman:</td>
+                    <td>${rthData.luas_pemakaman?.toFixed(2) || '0'} ha</td>
+                </tr>
+                <tr>
+                    <td class="font-semibold pr-2">Luas Kecamatan:</td>
+                    <td>${rthData.luas_kecamatan?.toFixed(0) || '0'} ha</td>
+                </tr>
+                <tr>
+                    <td class="font-semibold pr-2">Persentase RTH:</td>
+                    <td>${rthPercentage.toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td class="font-semibold pr-2">Cluster:</td>
+                    <td style="color: ${clusterColor}; font-weight: bold">${clusterName}</td>
+                </tr>
+            </table>
+        </div>`;
+    };
+
+    // Custom Legend component
+    const MapLegend = () => {
+        return (
+            <div className="leaflet-bottom leaflet-right" style={{ zIndex: 999 }}>
+                <div className="leaflet-control leaflet-bar bg-white p-2 shadow-md rounded-md m-4" style={{ minWidth: '300px' }}>
+                    <h4 className="font-bold text-sm mb-2">Legenda Cluster RTH</h4>
+                    <div className="space-y-1">
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 bg-green-600 mr-2"></div>
+                            <span className="text-xs">Cluster 2 (RTH Tinggi)</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 bg-yellow-400 mr-2"></div>
+                            <span className="text-xs">Cluster 1 (RTH Menengah)</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 bg-red-600 mr-2"></div>
+                            <span className="text-xs">Cluster 0 (RTH Rendah)</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 bg-gray-400 mr-2"></div>
+                            <span className="text-xs">Data tidak tersedia</span>
+                        </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                        Klik pada kecamatan untuk detail
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) return <div className="flex justify-center items-center h-full">Loading map data...</div>;
     if (error) return <div className="text-red-500 p-4">{error}</div>;
 
-    console.log('Rendering map with data:', geoData);
-
     return (
-        <div className="h-full w-full">
+        <div className="h-full w-full relative">
             <MapContainer
-                center={[-6.9147, 107.6098]}
-                zoom={12.4}
+                center={[-6.906685589692674, 107.61551919297135]}
+                zoom={13}
                 style={{ height: '100%', width: '100%' }}
                 scrollWheelZoom={true}
                 zoomControl={true}
@@ -110,13 +305,16 @@ const BandungMap = () => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
-                {geoData && (
+
+                {mergedData && (
                     <GeoJSON
-                        data={geoData}
-                        style={() => mapStyle}
+                        data={mergedData}
+                        style={getFeatureStyle}
                         onEachFeature={onEachFeature}
                     />
                 )}
+
+                <MapLegend />
             </MapContainer>
         </div>
     );
