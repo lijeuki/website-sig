@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const kecamatanRoutes = require('./Routes/kecamatan');
+const rthKecamatanRoutes = require('./Routes/rthKecamatan');
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
     res.send('API untuk SIG Ruang Terbuka Hijau Bandung berjalan');
 });
 app.use('/api/kecamatan', kecamatanRoutes);
+app.use('/api/rth-kecamatan', rthKecamatanRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

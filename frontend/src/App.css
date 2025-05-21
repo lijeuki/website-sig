@@ -1,3 +1,21 @@
 .leaflet-interactive:focus {
   outline: none !important;
 }
+/* Tambahkan ini ke App.css */
+/* Tambahkan ke App.css */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Konfigurasi untuk Leaflet */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Pastikan halaman landing tetap bisa di-scroll dengan baik */
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}

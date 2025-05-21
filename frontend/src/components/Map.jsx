@@ -1,3 +1,4 @@
+// src/components/Map.jsx - Modified version
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Popup } from 'react-leaflet';
 import axios from 'axios';
@@ -91,18 +92,19 @@ const BandungMap = () => {
         });
     };
 
-    if (loading) return <div className="flex justify-center items-center h-96">Loading map data...</div>;
+    if (loading) return <div className="flex justify-center items-center h-full">Loading map data...</div>;
     if (error) return <div className="text-red-500 p-4">{error}</div>;
 
     console.log('Rendering map with data:', geoData);
 
     return (
-        <div style={{ height: '550px', width: '100%', border: '1px solid #ccc' }}>
+        <div className="h-full w-full">
             <MapContainer
                 center={[-6.9147, 107.6098]}
                 zoom={12.4}
                 style={{ height: '100%', width: '100%' }}
                 scrollWheelZoom={true}
+                zoomControl={true}
             >
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
