@@ -1,5 +1,3 @@
-// backend/scripts/createAdmin.js
-// Script untuk membuat admin pertama
 
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
@@ -21,11 +19,8 @@ const createInitialAdmin = async () => {
 
         // Data admin default
         const adminData = {
-            username: 'admin',
-            password: 'admin123',
-            email: 'admin@bandunggreen.id',
-            role: 'super_admin',
-            isActive: true
+            username: 'may',
+            password: 'may'
         };
 
         // Buat admin baru
@@ -35,7 +30,6 @@ const createInitialAdmin = async () => {
         console.log('Initial admin created successfully!');
         console.log('Username:', adminData.username);
         console.log('Password:', adminData.password);
-        console.log('Role:', adminData.role);
 
     } catch (error) {
         console.error('Error creating admin:', error);

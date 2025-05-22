@@ -1,4 +1,4 @@
-// src/components/Map.jsx - With only OpenStreetMap and cluster coloring
+// frontend/src/components/Map.jsx - FIXED untuk menggunakan endpoint public
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import axios from 'axios';
@@ -33,21 +33,33 @@ const BandungMap = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setError(null);
+
+                console.log('Starting to fetch map data...');
 
                 // Fetch kecamatan boundaries
+                console.log('Fetching kecamatan boundaries...');
                 const kecamatanResponse = await axios.get('http://localhost:5000/api/kecamatan');
                 console.log('Kecamatan data received:', kecamatanResponse.data);
-
-                // Fetch RTH data
-                const rthResponse = await axios.get('http://localhost:5000/api/rth-kecamatan');
-                console.log('RTH data received:', rthResponse.data);
-
                 setGeoData(kecamatanResponse.data);
+
+                // Fetch RTH data - PENTING: gunakan endpoint /public
+                console.log('Fetching RTH data from public endpoint...');
+                const rthResponse = await axios.get('http://localhost:5000/api/rth-kecamatan/public');
+                console.log('RTH data received:', rthResponse.data);
                 setRthData(rthResponse.data);
+
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching map data:', err);
-                setError('Failed to load map data: ' + err.message);
+                console.error('Error details:', {
+                    message: err.message,
+                    status: err.response?.status,
+                    statusText: err.response?.statusText,
+                    data: err.response?.data
+                });
+
+                setError(`Failed to load map data: ${err.response?.status || 'Network Error'} - ${err.response?.statusText || err.message}`);
                 setLoading(false);
             }
         };
@@ -58,11 +70,17 @@ const BandungMap = () => {
     // Merge GeoJSON and RTH data when both are available
     useEffect(() => {
         if (geoData && rthData && Array.isArray(geoData.features) && Array.isArray(rthData)) {
+            console.log('Merging GeoJSON and RTH data...');
+            console.log('GeoJSON features count:', geoData.features.length);
+            console.log('RTH data count:', rthData.length);
+
             // Create a mapping of kecamatan names to RTH data
             const rthByKecamatan = {};
             rthData.forEach(item => {
                 if (item.kecamatan) {
-                    rthByKecamatan[item.kecamatan.toLowerCase()] = item;
+                    const normalizedName = item.kecamatan.toLowerCase().trim();
+                    rthByKecamatan[normalizedName] = item;
+                    console.log('RTH mapped:', normalizedName, '→', item.cluster);
                 }
             });
 
@@ -70,8 +88,14 @@ const BandungMap = () => {
             const mergedGeoJSON = {
                 type: 'FeatureCollection',
                 features: geoData.features.map(feature => {
-                    const featureName = feature.properties.name?.toLowerCase() || '';
+                    const featureName = (feature.properties.name || '').toLowerCase().trim();
                     const rthInfo = rthByKecamatan[featureName] || null;
+
+                    if (rthInfo) {
+                        console.log('Match found:', featureName, '→', rthInfo.cluster);
+                    } else {
+                        console.log('No RTH data for:', featureName);
+                    }
 
                     // Return a new feature with RTH data included in properties
                     return {
@@ -85,6 +109,7 @@ const BandungMap = () => {
                 })
             };
 
+            console.log('Merged data created with', mergedGeoJSON.features.length, 'features');
             setMergedData(mergedGeoJSON);
         }
     }, [geoData, rthData]);
@@ -92,7 +117,9 @@ const BandungMap = () => {
     // Get color based on cluster
     const getColor = (feature) => {
         // Check if feature has RTH data
-        if (!feature.properties.rthData) return '#CCCCCC'; // Gray for no data
+        if (!feature.properties.rthData) {
+            return '#CCCCCC'; // Gray for no data
+        }
 
         const rthData = feature.properties.rthData;
         // Get color based on cluster
@@ -246,6 +273,10 @@ const BandungMap = () => {
                     <td>${rthData.luas_kecamatan?.toFixed(0) || '0'} ha</td>
                 </tr>
                 <tr>
+                    <td class="font-semibold pr-2">% RTH:</td>
+                    <td>${rthPercentage.toFixed(2)}%</td>
+                </tr>
+                <tr>
                     <td class="font-semibold pr-2">Cluster:</td>
                     <td style="color: ${clusterColor}; font-weight: bold">${clusterName}</td>
                 </tr>
@@ -285,8 +316,35 @@ const BandungMap = () => {
         );
     };
 
-    if (loading) return <div className="flex justify-center items-center h-full">Loading map data...</div>;
-    if (error) return <div className="text-red-500 p-4">{error}</div>;
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mx-auto"></div>
+                    <p className="mt-2">Loading map data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <div className="text-center p-4">
+                    <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 max-w-md">
+                        <h3 className="font-bold mb-2">Failed to load map data</h3>
+                        <p className="text-sm mb-3">{error}</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-full w-full relative">

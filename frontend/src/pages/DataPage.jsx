@@ -1,4 +1,4 @@
-// src/pages/DataPage.jsx - dengan filter, pencarian, pengurutan & error handling
+// frontend/src/pages/DataPage.jsx - Updated untuk menggunakan endpoint public - LENGKAP
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -22,11 +22,12 @@ const DataPage = () => {
         fetchData();
     }, []);
 
-    // Fungsi untuk mengambil data dari database
+    // Fungsi untuk mengambil data dari database - menggunakan endpoint public
     const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:5000/api/rth-kecamatan');
+            // Gunakan endpoint public untuk halaman DataPage
+            const response = await axios.get('http://localhost:5000/api/rth-kecamatan/public');
 
             // Format data dari database untuk UI
             const formattedData = response.data.map((item, index) => ({

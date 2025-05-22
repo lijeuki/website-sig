@@ -22,24 +22,7 @@ const AdminSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    role: {
-        type: String,
-        default: 'admin',
-        enum: ['admin', 'super_admin']
-    },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    lastLogin: {
-        type: Date,
-        default: null
-    },
     createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
         type: Date,
         default: Date.now
     }
