@@ -40,7 +40,7 @@ const BandungMap = () => {
 
                 // Fetch kecamatan boundaries
                 console.log('Fetching kecamatan boundaries...');
-                const kecamatanResponse = await axios.get(`${API_BASE_URL}/api/kecamatan`);
+                const kecamatanResponse = await axios.get(`${API_BASE_URL}/api/kecamatan/public`);
                 console.log('Kecamatan data received:', kecamatanResponse.data);
                 setGeoData(kecamatanResponse.data);
 
