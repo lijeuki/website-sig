@@ -1,4 +1,4 @@
-// backend/server.js - Updated dengan auth routes
+// backend/server.js - Updated untuk serverless environment
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,16 +16,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bandung-gis', {
+// MongoDB connection options
+const mongoOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected...'))
-.catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-});
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+};
+
+// Connect to MongoDB with retry logic
+const connectWithRetry = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bandung-gis', mongoOptions);
+        console.log('MongoDB connected successfully');
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
+        console.log('Retrying connection in 5 seconds...');
+        setTimeout(connectWithRetry, 5000);
+    }
+};
+
+// Initial connection
+connectWithRetry();
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on('error', err => {
@@ -33,7 +45,8 @@ mongoose.connection.on('error', err => {
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB disconnected');
+    console.log('MongoDB disconnected, attempting to reconnect...');
+    connectWithRetry();
 });
 
 // Handle application termination
@@ -46,6 +59,18 @@ process.on('SIGINT', async () => {
         console.error('Error during MongoDB connection closure:', err);
         process.exit(1);
     }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    const dbState = mongoose.connection.readyState;
+    const dbStatus = dbState === 1 ? 'connected' : 'disconnected';
+    
+    res.status(200).json({
+        status: 'ok',
+        database: dbStatus,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Routes
@@ -62,10 +87,11 @@ app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
         success: false,
-        message: 'Something went wrong!'
+        message: err.message || 'Something went wrong!',
+        error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
 
@@ -77,6 +103,11 @@ app.use('*', (req, res) => {
     });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server only if not in serverless environment
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+// Export for serverless
+module.exports = app;
