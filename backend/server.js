@@ -20,11 +20,13 @@ app.use(express.json());
 const mongoOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
     socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
+    connectTimeoutMS: 30000,
     maxPoolSize: 10,
-    minPoolSize: 0
+    minPoolSize: 0,
+    retryWrites: true,
+    w: 'majority'
 };
 
 // Connect to MongoDB with retry logic
@@ -37,6 +39,11 @@ const connectWithRetry = async () => {
         // Check if we're already connected
         if (mongoose.connection.readyState === 1) {
             return;
+        }
+        
+        // Close any existing connection before creating a new one
+        if (mongoose.connection.readyState !== 0) {
+            await mongoose.connection.close();
         }
         
         await mongoose.connect(process.env.MONGO_URI, mongoOptions);
@@ -91,6 +98,50 @@ app.get('/health', (req, res) => {
         database: dbStatus,
         timestamp: new Date().toISOString()
     });
+});
+
+// Test MongoDB connection endpoint
+app.get('/testconnection', async (req, res) => {
+    try {
+        // Check current connection state
+        const currentState = mongoose.connection.readyState;
+        const stateMap = {
+            0: 'disconnected',
+            1: 'connected',
+            2: 'connecting',
+            3: 'disconnecting'
+        };
+
+        // Try to ping the database
+        let pingResult = null;
+        if (currentState === 1) {
+            pingResult = await mongoose.connection.db.admin().ping();
+        }
+
+        // Get connection details
+        const connectionDetails = {
+            state: stateMap[currentState] || 'unknown',
+            host: mongoose.connection.host,
+            name: mongoose.connection.name,
+            port: mongoose.connection.port,
+            ping: pingResult ? 'success' : 'not attempted'
+        };
+
+        res.status(200).json({
+            success: true,
+            message: 'Connection test completed',
+            connection: connectionDetails,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Connection test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Connection test failed',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Routes
