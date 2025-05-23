@@ -20,8 +20,11 @@ app.use(express.json());
 const mongoOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    connectTimeoutMS: 10000,
+    maxPoolSize: 10,
+    minPoolSize: 0
 };
 
 // Connect to MongoDB with retry logic
@@ -30,17 +33,29 @@ const connectWithRetry = async () => {
         if (!process.env.MONGO_URI) {
             throw new Error('MONGO_URI environment variable is not set');
         }
+        
+        // Check if we're already connected
+        if (mongoose.connection.readyState === 1) {
+            return;
+        }
+        
         await mongoose.connect(process.env.MONGO_URI, mongoOptions);
         console.log('MongoDB connected successfully');
     } catch (err) {
         console.error('MongoDB connection error:', err);
+        // In serverless environment, we don't want to retry indefinitely
+        if (process.env.NODE_ENV === 'production') {
+            throw err;
+        }
         console.log('Retrying connection in 5 seconds...');
         setTimeout(connectWithRetry, 5000);
     }
 };
 
-// Initial connection
-connectWithRetry();
+// Initial connection - only in development
+if (process.env.NODE_ENV !== 'production') {
+    connectWithRetry();
+}
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on('error', err => {
@@ -48,8 +63,10 @@ mongoose.connection.on('error', err => {
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB disconnected, attempting to reconnect...');
-    connectWithRetry();
+    console.log('MongoDB disconnected');
+    if (process.env.NODE_ENV !== 'production') {
+        connectWithRetry();
+    }
 });
 
 // Handle application termination
