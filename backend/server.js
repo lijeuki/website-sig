@@ -20,13 +20,15 @@ app.use(express.json());
 const mongoOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 30000,
     maxPoolSize: 10,
     minPoolSize: 0,
     retryWrites: true,
-    w: 'majority'
+    w: 'majority',
+    family: 4, // Force IPv4
+    appName: 'bandung-gis-backend' // Add app name for better monitoring
 };
 
 // Connect to MongoDB with retry logic
@@ -35,29 +37,43 @@ const connectWithRetry = async () => {
         if (!process.env.MONGO_URI) {
             throw new Error('MONGO_URI environment variable is not set');
         }
-        
-        // Check if we're already connected
-        if (mongoose.connection.readyState === 1) {
-            return;
-        }
-        
-        // Close any existing connection before creating a new one
+
+        // Force close any existing connection
         if (mongoose.connection.readyState !== 0) {
             await mongoose.connection.close();
+            // Wait a bit for the connection to fully close
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
+
+        // Clear any existing connection
+        mongoose.connection.removeAllListeners();
         
-        await mongoose.connect(process.env.MONGO_URI, mongoOptions);
+        // Create new connection with explicit database name
+        const uri = process.env.MONGO_URI.endsWith('/') 
+            ? `${process.env.MONGO_URI}bandung-gis` 
+            : `${process.env.MONGO_URI}/bandung-gis`;
+            
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(uri, mongoOptions);
         console.log('MongoDB connected successfully');
+        
+        // Verify connection with ping
+        const pingResult = await mongoose.connection.db.admin().ping();
+        console.log('MongoDB ping successful:', pingResult);
+        
+        return true;
     } catch (err) {
         console.error('MongoDB connection error:', err);
-        throw err; // Always throw in serverless to ensure proper error handling
+        throw err;
     }
 };
 
 // Middleware to ensure MongoDB connection
 const ensureMongoConnection = async (req, res, next) => {
     try {
+        // If not connected or disconnecting, establish new connection
         if (mongoose.connection.readyState !== 1) {
+            console.log('Connection state:', mongoose.connection.readyState, '- Attempting to connect...');
             await connectWithRetry();
         }
         next();
@@ -66,7 +82,8 @@ const ensureMongoConnection = async (req, res, next) => {
         res.status(500).json({
             success: false,
             message: 'Database connection failed',
-            error: error.message
+            error: error.message,
+            state: mongoose.connection.readyState
         });
     }
 };
@@ -89,6 +106,9 @@ app.get('/health', (req, res) => {
 // Test MongoDB connection endpoint
 app.get('/testconnection', async (req, res) => {
     try {
+        // Force a new connection attempt
+        await connectWithRetry();
+        
         // Check current connection state
         const currentState = mongoose.connection.readyState;
         const stateMap = {
@@ -100,8 +120,11 @@ app.get('/testconnection', async (req, res) => {
 
         // Try to ping the database
         let pingResult = null;
-        if (currentState === 1) {
+        try {
             pingResult = await mongoose.connection.db.admin().ping();
+            console.log('Ping result:', pingResult);
+        } catch (pingError) {
+            console.error('Ping error:', pingError);
         }
 
         // Get connection details
@@ -110,8 +133,10 @@ app.get('/testconnection', async (req, res) => {
             host: mongoose.connection.host,
             name: mongoose.connection.name,
             port: mongoose.connection.port,
-            ping: pingResult ? 'success' : 'not attempted',
-            uri: process.env.MONGO_URI ? 'configured' : 'not configured'
+            ping: pingResult ? 'success' : 'failed',
+            uri: process.env.MONGO_URI ? 'configured' : 'not configured',
+            readyState: currentState,
+            database: mongoose.connection.db.databaseName
         };
 
         res.status(200).json({
@@ -126,6 +151,7 @@ app.get('/testconnection', async (req, res) => {
             success: false,
             message: 'Connection test failed',
             error: error.message,
+            state: mongoose.connection.readyState,
             timestamp: new Date().toISOString()
         });
     }
