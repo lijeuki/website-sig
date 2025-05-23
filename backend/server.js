@@ -38,23 +38,37 @@ const connectWithRetry = async () => {
             throw new Error('MONGO_URI environment variable is not set');
         }
 
-        // Force close any existing connection
+        // Force close any existing connection and wait
         if (mongoose.connection.readyState !== 0) {
+            console.log('Closing existing connection...');
             await mongoose.connection.close();
-            // Wait a bit for the connection to fully close
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait longer for the connection to fully close
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Clear any existing connection
+        // Clear any existing connection and listeners
         mongoose.connection.removeAllListeners();
-        
+        mongoose.connection.on('error', (err) => {
+            console.error('MongoDB connection error:', err);
+        });
+
         // Create new connection with explicit database name
         const uri = process.env.MONGO_URI.endsWith('/') 
             ? `${process.env.MONGO_URI}bandung-gis` 
             : `${process.env.MONGO_URI}/bandung-gis`;
             
-        console.log('Connecting to MongoDB...');
-        await mongoose.connect(uri, mongoOptions);
+        console.log('Connecting to MongoDB...', uri);
+        
+        // Disconnect first to ensure clean state
+        await mongoose.disconnect();
+        
+        // Create new connection
+        await mongoose.connect(uri, {
+            ...mongoOptions,
+            serverSelectionTimeoutMS: 5000, // Shorter timeout for faster failure
+            connectTimeoutMS: 5000
+        });
+        
         console.log('MongoDB connected successfully');
         
         // Verify connection with ping
@@ -64,6 +78,12 @@ const connectWithRetry = async () => {
         return true;
     } catch (err) {
         console.error('MongoDB connection error:', err);
+        // Ensure we're disconnected on error
+        try {
+            await mongoose.disconnect();
+        } catch (disconnectErr) {
+            console.error('Error disconnecting:', disconnectErr);
+        }
         throw err;
     }
 };
@@ -71,11 +91,9 @@ const connectWithRetry = async () => {
 // Middleware to ensure MongoDB connection
 const ensureMongoConnection = async (req, res, next) => {
     try {
-        // If not connected or disconnecting, establish new connection
-        if (mongoose.connection.readyState !== 1) {
-            console.log('Connection state:', mongoose.connection.readyState, '- Attempting to connect...');
-            await connectWithRetry();
-        }
+        // Always try to connect in serverless environment
+        console.log('Current connection state:', mongoose.connection.readyState);
+        await connectWithRetry();
         next();
     } catch (error) {
         console.error('MongoDB connection middleware error:', error);
@@ -83,7 +101,8 @@ const ensureMongoConnection = async (req, res, next) => {
             success: false,
             message: 'Database connection failed',
             error: error.message,
-            state: mongoose.connection.readyState
+            state: mongoose.connection.readyState,
+            timestamp: new Date().toISOString()
         });
     }
 };
@@ -107,6 +126,7 @@ app.get('/health', (req, res) => {
 app.get('/testconnection', async (req, res) => {
     try {
         // Force a new connection attempt
+        console.log('Testing connection...');
         await connectWithRetry();
         
         // Check current connection state
