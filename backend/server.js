@@ -50,43 +50,29 @@ const connectWithRetry = async () => {
         console.log('MongoDB connected successfully');
     } catch (err) {
         console.error('MongoDB connection error:', err);
-        // In serverless environment, we don't want to retry indefinitely
-        if (process.env.NODE_ENV === 'production') {
-            throw err;
-        }
-        console.log('Retrying connection in 5 seconds...');
-        setTimeout(connectWithRetry, 5000);
+        throw err; // Always throw in serverless to ensure proper error handling
     }
 };
 
-// Initial connection - only in development
-if (process.env.NODE_ENV !== 'production') {
-    connectWithRetry();
-}
-
-// Handle MongoDB connection errors after initial connection
-mongoose.connection.on('error', err => {
-    console.error('MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB disconnected');
-    if (process.env.NODE_ENV !== 'production') {
-        connectWithRetry();
-    }
-});
-
-// Handle application termination
-process.on('SIGINT', async () => {
+// Middleware to ensure MongoDB connection
+const ensureMongoConnection = async (req, res, next) => {
     try {
-        await mongoose.connection.close();
-        console.log('MongoDB connection closed through app termination');
-        process.exit(0);
-    } catch (err) {
-        console.error('Error during MongoDB connection closure:', err);
-        process.exit(1);
+        if (mongoose.connection.readyState !== 1) {
+            await connectWithRetry();
+        }
+        next();
+    } catch (error) {
+        console.error('MongoDB connection middleware error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: error.message
+        });
     }
-});
+};
+
+// Apply the middleware to all routes
+app.use(ensureMongoConnection);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -124,7 +110,8 @@ app.get('/testconnection', async (req, res) => {
             host: mongoose.connection.host,
             name: mongoose.connection.name,
             port: mongoose.connection.port,
-            ping: pingResult ? 'success' : 'not attempted'
+            ping: pingResult ? 'success' : 'not attempted',
+            uri: process.env.MONGO_URI ? 'configured' : 'not configured'
         };
 
         res.status(200).json({
