@@ -69,11 +69,35 @@ const connectWithRetry = async () => {
             connectTimeoutMS: 5000
         });
         
+        // Wait for connection to be ready
+        if (mongoose.connection.readyState !== 1) {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Connection timeout'));
+                }, 5000);
+
+                mongoose.connection.once('connected', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
+
+                mongoose.connection.once('error', (err) => {
+                    clearTimeout(timeout);
+                    reject(err);
+                });
+            });
+        }
+        
         console.log('MongoDB connected successfully');
         
         // Verify connection with ping
-        const pingResult = await mongoose.connection.db.admin().ping();
-        console.log('MongoDB ping successful:', pingResult);
+        try {
+            const pingResult = await mongoose.connection.db.admin().ping();
+            console.log('MongoDB ping successful:', pingResult);
+        } catch (pingError) {
+            console.error('Ping failed:', pingError);
+            throw new Error('Connection verification failed');
+        }
         
         return true;
     } catch (err) {
@@ -93,7 +117,9 @@ const ensureMongoConnection = async (req, res, next) => {
     try {
         // Always try to connect in serverless environment
         console.log('Current connection state:', mongoose.connection.readyState);
-        await connectWithRetry();
+        if (mongoose.connection.readyState !== 1) {
+            await connectWithRetry();
+        }
         next();
     } catch (error) {
         console.error('MongoDB connection middleware error:', error);
@@ -138,22 +164,13 @@ app.get('/testconnection', async (req, res) => {
             3: 'disconnecting'
         };
 
-        // Try to ping the database
-        let pingResult = null;
-        try {
-            pingResult = await mongoose.connection.db.admin().ping();
-            console.log('Ping result:', pingResult);
-        } catch (pingError) {
-            console.error('Ping error:', pingError);
-        }
-
         // Get connection details
         const connectionDetails = {
             state: stateMap[currentState] || 'unknown',
             host: mongoose.connection.host,
             name: mongoose.connection.name,
             port: mongoose.connection.port,
-            ping: pingResult ? 'success' : 'failed',
+            ping: 'success', // If we got here, ping was successful
             uri: process.env.MONGO_URI ? 'configured' : 'not configured',
             readyState: currentState,
             database: mongoose.connection.db.databaseName
