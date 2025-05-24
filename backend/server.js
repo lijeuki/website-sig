@@ -14,24 +14,11 @@ dotenv.config();
 const app = express();
 
 // CORS configuration
-const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'https://sig-bandung.vercel.app',
-        'https://website-sig-blue.vercel.app'
-    ],
+app.use(cors({
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-};
-
-// Apply CORS with options
-app.use(cors(corsOptions));
-
-// Handle OPTIONS requests explicitly
-app.options('*', cors(corsOptions));
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware
 app.use(express.json());
