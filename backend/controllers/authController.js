@@ -1,6 +1,8 @@
 // backend/controllers/authController.js
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
+const mongoose = require('mongoose');
+const TokenBlacklist = require('../models/TokenBlacklist');
 
 // Generate JWT Token
 const generateToken = (adminId) => {
@@ -27,7 +29,7 @@ exports.loginAdmin = async (req, res) => {
         }
 
         // Cari admin berdasarkan username
-        const admin = await Admin.findOne({ username: username.toLowerCase() });
+        const admin = await findAdminWithRetry(username);
 
         if (!admin) {
             return res.status(401).json({
@@ -117,20 +119,16 @@ exports.getAdminProfile = async (req, res) => {
 // Logout Admin (Optional - for token blacklisting in the future)
 exports.logoutAdmin = async (req, res) => {
     try {
-        // Untuk sekarang, logout hanya mengembalikan success
-        // Di masa depan bisa ditambahkan token blacklisting
-
-        res.json({
-            success: true,
-            message: 'Logout berhasil'
-        });
-
+        // Invalidate token (you'll need to implement token blacklisting)
+        const token = req.headers.authorization?.split(' ')[1];
+        if (token) {
+            // Add to blacklist collection
+            await TokenBlacklist.create({ token, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+        }
+        res.json({ success: true, message: 'Logout berhasil' });
     } catch (error) {
         console.error('Logout error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during logout'
-        });
+        res.status(500).json({ success: false, message: 'Server error during logout' });
     }
 };
 
@@ -255,3 +253,18 @@ exports.createAdmin = async (req, res) => {
         });
     }
 };
+
+const findAdminWithRetry = async (username, maxRetries = 3) => {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await Admin.findOne({ username: username.toLowerCase() });
+        } catch (error) {
+            if (i === maxRetries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+    }
+};
+
+mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+});
