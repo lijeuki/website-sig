@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const kecamatanRoutes = require('./Routes/kecamatan');
 const rthKecamatanRoutes = require('./Routes/rthKecamatan');
 const authRoutes = require('./Routes/auth');
+const adminRoutes = require('./Routes/admin');
 
 // Load environment variables
 dotenv.config();
@@ -205,6 +206,9 @@ app.use('/api/rth-kecamatan', rthKecamatanRoutes);
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+
+// Admin routes
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
