@@ -3,6 +3,7 @@ import axios from 'axios';
 export const API_BASE_URL = (import.meta.env.VITE_REACT_APP_BACKEND_BASEURL || 'http://localhost:5000').replace(/\/+$/, '');
 
 // Configure axios defaults
+axios.defaults.withCredentials = true;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 // Add request interceptor
