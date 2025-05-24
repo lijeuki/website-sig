@@ -32,7 +32,7 @@ exports.loginAdmin = async (req, res) => {
         if (!admin) {
             return res.status(401).json({
                 success: false,
-                message: 'Username atau password salah'
+                message: 'Username salah'
             });
         }
 
@@ -50,7 +50,7 @@ exports.loginAdmin = async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                message: 'Username atau password salah'
+                message: 'password salah'
             });
         }
 
