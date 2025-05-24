@@ -9,7 +9,13 @@ const createInitialAdmin = async () => {
         await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bandung-gis');
         console.log('Connected to MongoDB');
 
-     
+        // Cek apakah sudah ada admin
+        const existingAdmin = await Admin.findOne({});
+
+        if (existingAdmin) {
+            console.log('Admin already exists:', existingAdmin.username);
+            process.exit(0);
+        }
 
         // Data admin default
         const adminData = {
