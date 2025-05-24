@@ -28,8 +28,17 @@ exports.loginAdmin = async (req, res) => {
             });
         }
 
-        // Cari admin berdasarkan username
-        const admin = await findAdminWithRetry(username);
+        // Cari admin berdasarkan username dengan retry
+        let admin;
+        try {
+            admin = await findAdminWithRetry(username);
+        } catch (dbError) {
+            console.error('Database error during login:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Database connection error'
+            });
+        }
 
         if (!admin) {
             return res.status(401).json({
@@ -47,17 +56,31 @@ exports.loginAdmin = async (req, res) => {
         }
 
         // Verify password
-        const isPasswordValid = await admin.comparePassword(password);
+        let isPasswordValid;
+        try {
+            isPasswordValid = await admin.comparePassword(password);
+        } catch (passwordError) {
+            console.error('Password comparison error:', passwordError);
+            return res.status(500).json({
+                success: false,
+                message: 'Error during password verification'
+            });
+        }
 
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                message: 'password salah'
+                message: 'Password salah'
             });
         }
 
         // Update last login
-        await admin.updateLastLogin();
+        try {
+            await admin.updateLastLogin();
+        } catch (updateError) {
+            console.error('Error updating last login:', updateError);
+            // Continue with login even if last login update fails
+        }
 
         // Generate JWT token
         const token = generateToken(admin._id);
@@ -82,7 +105,8 @@ exports.loginAdmin = async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error during login'
+            message: 'Server error during login',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
