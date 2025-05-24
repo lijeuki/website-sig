@@ -70,6 +70,11 @@ const AdminLoginPage = () => {
             const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
                 username: formData.username.trim(),
                 password: formData.password
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
             });
 
             if (response.data.success) {
