@@ -19,7 +19,6 @@ const AdminLoginPage = () => {
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         if (token) {
-            // Verify token dengan API
             verifyExistingToken(token);
         }
     }, []);
@@ -33,11 +32,10 @@ const AdminLoginPage = () => {
             });
 
             if (response.data.success) {
-                // Token valid, redirect ke dashboard
                 navigate('/admin/dashboard');
             }
         } catch (error) {
-            // Token tidak valid, hapus dari localStorage
+            console.error('Token verification failed:', error);
             localStorage.removeItem('adminToken');
             localStorage.removeItem('adminUser');
         }
@@ -49,7 +47,6 @@ const AdminLoginPage = () => {
             ...prev,
             [name]: value
         }));
-        // Clear error when user starts typing
         if (error) setError('');
     };
 
@@ -58,7 +55,6 @@ const AdminLoginPage = () => {
         setLoading(true);
         setError('');
 
-        // Basic validation
         if (!formData.username.trim() || !formData.password.trim()) {
             setError('Username dan password harus diisi');
             setLoading(false);
@@ -66,7 +62,6 @@ const AdminLoginPage = () => {
         }
 
         try {
-            // API call untuk login
             const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
                 username: formData.username.trim(),
                 password: formData.password
@@ -75,7 +70,7 @@ const AdminLoginPage = () => {
             if (response.data.success) {
                 const { token, admin } = response.data.data;
 
-                // Store auth data in localStorage
+                // Store auth data
                 localStorage.setItem('adminToken', token);
                 localStorage.setItem('adminUser', JSON.stringify({
                     id: admin.id,
@@ -86,20 +81,23 @@ const AdminLoginPage = () => {
                     loginTime: new Date().toISOString()
                 }));
 
-                // Configure axios default header untuk request selanjutnya
+                // Set default authorization header
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-                // Redirect to admin dashboard
+                // Redirect to dashboard
                 navigate('/admin/dashboard');
             }
         } catch (err) {
             console.error('Login error:', err);
-
-            if (err.response && err.response.data) {
+            
+            if (err.response) {
+                // Server responded with an error
                 setError(err.response.data.message || 'Login gagal');
-            } else if (err.code === 'ECONNREFUSED') {
-                setError('Tidak dapat terhubung ke server. Pastikan backend berjalan.');
+            } else if (err.request) {
+                // Request was made but no response
+                setError('Tidak dapat terhubung ke server. Silakan coba lagi.');
             } else {
+                // Other errors
                 setError('Terjadi kesalahan saat login. Silakan coba lagi.');
             }
         } finally {

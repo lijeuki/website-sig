@@ -28,17 +28,17 @@ exports.loginAdmin = async (req, res) => {
             });
         }
 
-        // Cari admin berdasarkan username dengan retry
-        let admin;
-        try {
-            admin = await findAdminWithRetry(username);
-        } catch (dbError) {
-            console.error('Database error during login:', dbError);
-            return res.status(500).json({
-                success: false,
-                message: 'Database connection error'
+        // Ensure MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.log('MongoDB not connected, attempting to connect...');
+            await mongoose.connect(process.env.MONGO_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
             });
         }
+
+        // Cari admin berdasarkan username
+        const admin = await Admin.findOne({ username: username.trim() });
 
         if (!admin) {
             return res.status(401).json({
@@ -47,18 +47,8 @@ exports.loginAdmin = async (req, res) => {
             });
         }
 
-
         // Verify password
-        let isPasswordValid;
-        try {
-            isPasswordValid = await admin.comparePassword(password);
-        } catch (passwordError) {
-            console.error('Password comparison error:', passwordError);
-            return res.status(500).json({
-                success: false,
-                message: 'Error during password verification'
-            });
-        }
+        const isPasswordValid = await admin.comparePassword(password);
 
         if (!isPasswordValid) {
             return res.status(401).json({
@@ -107,6 +97,15 @@ exports.loginAdmin = async (req, res) => {
 // Get Admin Profile (Protected route)
 exports.getAdminProfile = async (req, res) => {
     try {
+        // Ensure MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.log('MongoDB not connected, attempting to connect...');
+            await mongoose.connect(process.env.MONGO_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         // req.admin sudah tersedia dari middleware verifyToken
         const admin = req.admin;
 
@@ -133,14 +132,25 @@ exports.getAdminProfile = async (req, res) => {
     }
 };
 
-// Logout Admin (Optional - for token blacklisting in the future)
+// Logout Admin
 exports.logoutAdmin = async (req, res) => {
     try {
-        // Invalidate token (you'll need to implement token blacklisting)
+        // Ensure MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            console.log('MongoDB not connected, attempting to connect...');
+            await mongoose.connect(process.env.MONGO_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         const token = req.headers.authorization?.split(' ')[1];
         if (token) {
             // Add to blacklist collection
-            await TokenBlacklist.create({ token, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+            await TokenBlacklist.create({ 
+                token, 
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) 
+            });
         }
         res.json({ success: true, message: 'Logout berhasil' });
     } catch (error) {
