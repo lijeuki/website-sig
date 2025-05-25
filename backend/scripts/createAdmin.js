@@ -14,8 +14,12 @@ const createInitialAdmin = async () => {
             await mongoose.connection.close();
         }
 
+        // Ensure we're using the correct database name
+        const finalUri = uri.includes('/bandung-gis') ? uri : `${uri}/bandung-gis`;
+        console.log('Final MongoDB URI:', finalUri);
+
         console.log('Connecting to MongoDB...');
-        await mongoose.connect(uri, {
+        await mongoose.connect(finalUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
