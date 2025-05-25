@@ -44,7 +44,7 @@ const createInitialAdmin = async () => {
         // Data admin default
         const adminData = {
             username: 'may',
-            password: 'may'
+            password: 'may123456'
         };
 
         // Buat admin baru
