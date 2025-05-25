@@ -81,4 +81,4 @@ AdminSchema.pre('save', function (next) {
     next();
 });
 
-module.exports = mongoose.model('Admin', AdminSchema, 'Admins');
+module.exports = mongoose.model('Admin', AdminSchema, 'admins');

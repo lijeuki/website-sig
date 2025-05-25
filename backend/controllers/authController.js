@@ -48,6 +48,12 @@ exports.loginAdmin = async (req, res) => {
             }
         }
 
+        // Verify collection name
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        const adminCollection = collections.find(c => c.name === 'admins');
+        console.log('Available collections:', collections.map(c => c.name));
+        console.log('Using collection:', Admin.collection.name);
+
         // Cari admin berdasarkan username
         console.log('Searching for admin with username:', username.trim());
         const admin = await Admin.findOne({ username: username.trim() });
