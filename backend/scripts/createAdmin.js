@@ -6,15 +6,31 @@ const createInitialAdmin = async () => {
     try {
         // Connect to MongoDB
         const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/bandung-gis';
+        console.log('MongoDB URI:', uri);
+        
+        // Force close any existing connection
+        if (mongoose.connection.readyState !== 0) {
+            console.log('Closing existing connection...');
+            await mongoose.connection.close();
+        }
+
         console.log('Connecting to MongoDB...');
         await mongoose.connect(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
         console.log('Connected to MongoDB successfully');
+        console.log('Database name:', mongoose.connection.db.databaseName);
+
+        // List all collections
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        console.log('Available collections:', collections.map(c => c.name));
 
         // Cek apakah sudah ada admin
+        console.log('Checking for existing admin...');
         const existingAdmin = await Admin.findOne({});
+        console.log('Existing admin query result:', existingAdmin);
+
         if (existingAdmin) {
             console.log('Admin already exists:', existingAdmin.username);
             process.exit(0);
@@ -36,6 +52,7 @@ const createInitialAdmin = async () => {
         const verifyAdmin = await Admin.findOne({ username: adminData.username });
         if (verifyAdmin) {
             console.log('Admin creation verified:', verifyAdmin.username);
+            console.log('Admin document:', JSON.stringify(verifyAdmin, null, 2));
         } else {
             throw new Error('Admin creation verification failed');
         }
@@ -46,10 +63,15 @@ const createInitialAdmin = async () => {
 
     } catch (error) {
         console.error('Error creating admin:', error);
+        console.error('Error details:', error.stack);
         process.exit(1);
     } finally {
-        await mongoose.disconnect();
-        console.log('MongoDB disconnected');
+        try {
+            await mongoose.disconnect();
+            console.log('MongoDB disconnected');
+        } catch (disconnectError) {
+            console.error('Error disconnecting:', disconnectError);
+        }
         process.exit(0);
     }
 };
