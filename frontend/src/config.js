@@ -3,11 +3,22 @@ import axios from 'axios';
 export const API_BASE_URL = (import.meta.env.VITE_REACT_APP_BACKEND_BASEURL || 'http://localhost:5000').replace(/\/+$/, '');
 
 // Configure axios defaults
-axios.defaults.withCredentials = true;
+axios.defaults.withCredentials = false; // Set to false for public endpoints
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
-// Add request interceptor
-axios.interceptors.request.use(
+// Create separate axios instances for public and authenticated requests
+const publicAxios = axios.create({
+    baseURL: API_BASE_URL,
+    withCredentials: false
+});
+
+const authAxios = axios.create({
+    baseURL: API_BASE_URL,
+    withCredentials: true
+});
+
+// Add request interceptor for authenticated requests
+authAxios.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('adminToken');
         if (token) {
@@ -20,8 +31,8 @@ axios.interceptors.request.use(
     }
 );
 
-// Add response interceptor
-axios.interceptors.response.use(
+// Add response interceptor for authenticated requests
+authAxios.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
@@ -31,4 +42,6 @@ axios.interceptors.response.use(
         }
         return Promise.reject(error);
     }
-); 
+);
+
+export { publicAxios, authAxios }; 
