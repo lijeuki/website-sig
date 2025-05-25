@@ -9,12 +9,20 @@ axios.defaults.headers.common['Content-Type'] = 'application/json';
 // Create separate axios instances for public and authenticated requests
 const publicAxios = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: false
+    withCredentials: false,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
 });
 
 const authAxios = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: true
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
 });
 
 // Add request interceptor for authenticated requests

@@ -19,7 +19,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    credentials: true,
+    credentials: false, // Set to false for public endpoints
     maxAge: 86400 // 24 hours
 }));
 
@@ -28,7 +28,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', 'https://website-sig-blue.vercel.app');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Credentials', 'false'); // Set to false for public endpoints
     res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
     
     // Handle preflight requests
