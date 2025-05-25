@@ -61,9 +61,10 @@ const connectWithRetry = async () => {
         });
 
         // Create new connection with explicit database name
-        const uri = process.env.MONGO_URI.endsWith('/') 
-            ? `${process.env.MONGO_URI}bandung-gis` 
-            : `${process.env.MONGO_URI}/bandung-gis`;
+        const baseUri = process.env.MONGO_URI;
+        const uri = baseUri.endsWith('/') 
+            ? `${baseUri}bandung-gis` 
+            : `${baseUri}/bandung-gis`;
             
         console.log('Connecting to MongoDB...', uri);
         
@@ -96,7 +97,15 @@ const connectWithRetry = async () => {
             });
         }
         
-        console.log('MongoDB connected successfully');
+        // Verify database name
+        const dbName = mongoose.connection.db.databaseName;
+        console.log('Connected to MongoDB database:', dbName);
+
+        if (dbName !== 'bandung-gis') {
+            throw new Error(`Connected to wrong database: ${dbName}. Expected: bandung-gis`);
+        }
+        
+        console.log('MongoDB connected successfully to bandung-gis database');
         
         // Verify connection with ping
         try {
@@ -148,10 +157,14 @@ app.use(ensureMongoConnection);
 app.get('/health', (req, res) => {
     const dbState = mongoose.connection.readyState;
     const dbStatus = dbState === 1 ? 'connected' : 'disconnected';
+    const dbName = mongoose.connection.db?.databaseName || 'unknown';
     
     res.status(200).json({
         status: 'ok',
-        database: dbStatus,
+        database: {
+            status: dbStatus,
+            name: dbName
+        },
         timestamp: new Date().toISOString()
     });
 });
