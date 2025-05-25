@@ -4,19 +4,20 @@ require('dotenv').config();
 
 const createInitialAdmin = async () => {
     try {
-        // Connect to MongoDB
-        const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/bandung-gis';
-        console.log('MongoDB URI:', uri);
+        // Get base MongoDB URI without database name
+        let baseUri = process.env.MONGO_URI || 'mongodb://localhost:27017';
+        // Remove trailing slash if present
+        baseUri = baseUri.endsWith('/') ? baseUri.slice(0, -1) : baseUri;
+        
+        // Construct final URI with database name
+        const finalUri = `${baseUri}/bandung-gis`;
+        console.log('MongoDB URI:', finalUri);
         
         // Force close any existing connection
         if (mongoose.connection.readyState !== 0) {
             console.log('Closing existing connection...');
             await mongoose.connection.close();
         }
-
-        // Ensure we're using the correct database name
-        const finalUri = uri.includes('/bandung-gis') ? uri : `${uri}/bandung-gis`;
-        console.log('Final MongoDB URI:', finalUri);
 
         console.log('Connecting to MongoDB...');
         await mongoose.connect(finalUri, {
