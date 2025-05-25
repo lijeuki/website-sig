@@ -18,10 +18,12 @@ const generateToken = (adminId) => {
 // Login Admin
 exports.loginAdmin = async (req, res) => {
     try {
+        console.log('Login attempt:', { username: req.body.username });
         const { username, password } = req.body;
 
         // Validasi input
         if (!username || !password) {
+            console.log('Missing credentials');
             return res.status(400).json({
                 success: false,
                 message: 'Username dan password harus diisi'
@@ -31,16 +33,28 @@ exports.loginAdmin = async (req, res) => {
         // Ensure MongoDB connection
         if (mongoose.connection.readyState !== 1) {
             console.log('MongoDB not connected, attempting to connect...');
-            await mongoose.connect(process.env.MONGO_URI, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true
-            });
+            try {
+                await mongoose.connect(process.env.MONGO_URI, {
+                    useNewUrlParser: true,
+                    useUnifiedTopology: true
+                });
+                console.log('MongoDB connected successfully');
+            } catch (dbError) {
+                console.error('MongoDB connection error:', dbError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Database connection error'
+                });
+            }
         }
 
         // Cari admin berdasarkan username
+        console.log('Searching for admin with username:', username.trim());
         const admin = await Admin.findOne({ username: username.trim() });
+        console.log('Admin search result:', admin ? 'Found' : 'Not found');
 
         if (!admin) {
+            console.log('Admin not found');
             return res.status(401).json({
                 success: false,
                 message: 'Username salah'
@@ -48,9 +62,12 @@ exports.loginAdmin = async (req, res) => {
         }
 
         // Verify password
+        console.log('Verifying password');
         const isPasswordValid = await admin.comparePassword(password);
+        console.log('Password verification result:', isPasswordValid ? 'Valid' : 'Invalid');
 
         if (!isPasswordValid) {
+            console.log('Invalid password');
             return res.status(401).json({
                 success: false,
                 message: 'Password salah'
@@ -59,16 +76,21 @@ exports.loginAdmin = async (req, res) => {
 
         // Update last login
         try {
+            console.log('Updating last login');
             await admin.updateLastLogin();
+            console.log('Last login updated successfully');
         } catch (updateError) {
             console.error('Error updating last login:', updateError);
             // Continue with login even if last login update fails
         }
 
         // Generate JWT token
+        console.log('Generating JWT token');
         const token = generateToken(admin._id);
+        console.log('Token generated successfully');
 
         // Response success
+        console.log('Login successful, sending response');
         res.json({
             success: true,
             message: 'Login berhasil',
@@ -86,6 +108,7 @@ exports.loginAdmin = async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Server error during login',
